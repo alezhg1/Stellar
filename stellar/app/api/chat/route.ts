@@ -1,88 +1,117 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenRouter from 'openrouter-ai';
+import { v4 as uuidv4 } from 'uuid';
+import { db, queries, initDatabase } from '@/lib/init-db';
 
-const SYSTEM_PROMPT = `Ты — Socratic AI-репетитор приложения Stellar. Твоя задача — помогать ученикам 8-11 классов понимать материал, а НЕ давать готовые ответы.
+// Инициализируем БД при первом запросе (если еще не создана)
+initDatabase();
 
-ПРИНЦИПЫ РАБОТЫ:
-1. НИКОГДА не давай готовое решение задачи
-2. Задавай наводящие вопросы (scaffolding)
-3. Проверяй понимание после каждого шага
-4. Связывай ответ с кодами ФИПИ и кодификатором
-5. Если ученик ошибается — найди корневую причину (пробел в более ранней теме)
-6. Поддерживай мотивацию, хвали за правильные рассуждения
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-ФОРМАТ ОТВЕТА:
-- Короткие абзацы (2-3 предложения)
-- 1-2 наводящих вопроса
-- Если возможно, укажи код ФИПИ
+// Системный промпт для Сократического метода
+const SOCRATIC_SYSTEM_PROMPT = `Ты — AI-репетитор Stellar. Твоя задача — НЕ давать готовые ответы, а учить мыслить.
+ПРАВИЛА:
+1. Никогда не решай задачу полностью за ученика.
+2. Задавай наводящие вопросы (scaffolding).
+3. Если ученик ошибся — объясни, в чём ошибка, и дай подсказку.
+4. Хвали за правильные шаги.
+5. Используй аналогии из жизни.
+6. Ссылайся на кодификатор ФИПИ, если тема известна.
 
-СТРУКТУРА ДИАЛОГА:
-1. Пойми, что именно спрашивает ученик
-2. Определи тему и код ФИПИ
-3. Задай вопрос, который направит мысль в нужное русло
-4. Если ответ неверный — спроси: "Почему ты так решил?" или "Давай проверим этот шаг"
-5. Когда ученик близок к решению — похвали и дай последний намёк
+Контекст темы: {topic_name} ({fipi_code})
+Уровень освоения учеником: {accuracy}%
 
-ПРИМЕР:
-Ученик: "Как решить 2x + 5 = 13?"
-Ты: "Отличный вопрос! Давай разберёмся. Что нужно сделать первым шагом, чтобы изолировать x? Вспомни, что мы делаем с числами, которые мешают переменной."`;
+Начни диалог с вопроса: "Что ты уже знаешь по этой теме?" или "Давай разберёмся вместе. С чего начнём?"`;
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, conversationHistory } = await request.json();
+    const body = await request.json();
+    const { message, userId, topicId, sessionId } = body;
 
-    if (!message) {
-      return NextResponse.json(
-        { error: 'Message is required' },
-        { status: 400 }
-      );
+    if (!message || !userId) {
+      return NextResponse.json({ error: 'message и userId обязательны' }, { status: 400 });
     }
 
-    // Initialize OpenRouter client
-    const openrouter = new OpenRouter({
-      apiKey: process.env.OPENROUTER_API_KEY,
-      baseURL: 'https://openrouter.ai/api/v1',
-    });
+    // Получаем тему
+    let topic = null;
+    if (topicId) {
+      topic = queries.getTopicById.get(topicId) as any;
+    }
 
-    // Build conversation context
-    const messages = [
-      { role: 'system', content: SYSTEM_PROMPT },
-      ...conversationHistory.map((msg: any) => ({
-        role: msg.role,
-        content: msg.content,
-      })),
-      { role: 'user', content: message },
+    // Создаём новую сессию, если нет ID
+    let currentSessionId = sessionId;
+    if (!currentSessionId) {
+      currentSessionId = uuidv4();
+      queries.createSession.run(currentSessionId, userId, topicId || null);
+    }
+
+    // Сохраняем сообщение пользователя
+    queries.saveMessage.run(uuidv4(), currentSessionId, 'user', message);
+
+    // Получаем историю диалога (последние 10 сообщений для контекста)
+    const messages = queries.getSessionMessages.all(currentSessionId) as any[];
+    const recentMessages = messages.slice(-10);
+
+    // Формируем промпт
+    const systemPrompt = SOCRATIC_SYSTEM_PROMPT
+      .replace('{topic_name}', topic?.name || 'общая подготовка')
+      .replace('{fipi_code}', topic?.fipi_code || 'N/A')
+      .replace('{accuracy}', topic ? 'unknown' : 'new');
+
+    const apiMessages = [
+      { role: 'system', content: systemPrompt },
+      ...recentMessages.map(m => ({ role: m.role, content: m.content })),
     ];
 
-    // Call OpenRouter API (using free model)
-    const completion = await openrouter.chat.completions.create({
-      model: 'meta-llama/llama-3-8b-instruct:free',
-      messages: messages as any[],
-      max_tokens: 500,
-      temperature: 0.7,
-      presence_penalty: 0.3,
-      frequency_penalty: 0.3,
+    // Вызов OpenRouter API
+    const response = await fetch(OPENROUTER_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'HTTP-Referer': 'https://stellar-edu.vercel.app',
+        'X-Title': 'Stellar AI Tutor'
+      },
+      body: JSON.stringify({
+        model: 'meta-llama/llama-3-8b-instruct:free', // Бесплатная модель
+        messages: apiMessages,
+        max_tokens: 500,
+        temperature: 0.7,
+      }),
     });
 
-    const response = completion.choices[0]?.message?.content || '';
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenRouter error:', errorText);
+      
+      // Fallback ответ при ошибке API
+      const fallbackResponse = "Извини, сейчас я немного устал. Давай попробуем так: какая часть задачи вызывает затруднение?";
+      
+      queries.saveMessage.run(uuidv4(), currentSessionId, 'assistant', fallbackResponse);
+      
+      return NextResponse.json({
+        response: fallbackResponse,
+        sessionId: currentSessionId,
+        isFallback: true
+      });
+    }
 
-    // Extract FIPi code if mentioned (simple regex)
-    const fipiMatch = response.match(/ФИПИ[:\s]*([0-9.]+)/i);
-    const fipiCode = fipiMatch ? fipiMatch[1] : null;
+    const data = await response.json();
+    const aiResponse = data.choices?.[0]?.message?.content || 'Не удалось получить ответ.';
 
-    // Save conversation to Supabase (optional, for analytics)
-    // const supabase = createClient(...);
-    // await supabase.from('chat_logs').insert({...});
+    // Сохраняем ответ AI
+    queries.saveMessage.run(uuidv4(), currentSessionId, 'assistant', aiResponse);
 
     return NextResponse.json({
-      response,
-      fipiCode,
-      timestamp: new Date().toISOString(),
+      response: aiResponse,
+      sessionId: currentSessionId,
+      topic: topic ? { id: topic.id, name: topic.name, fipi_code: topic.fipi_code } : null
     });
+
   } catch (error) {
-    console.error('Chat API Error:', error);
+    console.error('Chat API error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Внутренняя ошибка сервера' },
       { status: 500 }
     );
   }

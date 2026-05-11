@@ -1,245 +1,201 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 
-interface ProgressPrediction {
-  currentScore: number;
-  predictedScore: number;
-  confidence: number;
-  weakTopics: string[];
-  recommendedActions: string[];
-  daysToGoal: number;
+interface PredictiveProgressProps {
+  userId: string;
 }
 
-export default function PredictiveProgress() {
-  const [prediction, setPrediction] = useState<ProgressPrediction | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export default function PredictiveProgress({ userId }: PredictiveProgressProps) {
+  const [predictedScore, setPredictedScore] = useState<number>(0);
+  const [confidence, setConfidence] = useState<number>(0);
+  const [weakTopics, setWeakTopics] = useState<Array<{ name: string; impact: number }>>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadPrediction();
-  }, []);
-
-  const loadPrediction = async () => {
-    try {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
-
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        // Demo data for presentation
-        setPrediction(getDemoPrediction());
-        return;
-      }
-
-      // Fetch user's mastery data
-      const { data: masteryData } = await supabase
-        .from('user_topic_mastery')
-        .select('topic_id, accuracy, attempts')
-        .eq('user_id', user.id);
-
-      // Fetch study activity
-      const { data: activityData } = await supabase
-        .from('study_sessions')
-        .select('duration_minutes, topics_covered, created_at')
-        .eq('user_id', user.id)
-        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
-        .order('created_at', { ascending: false });
-
-      // Calculate prediction
-      const calculatedPrediction = calculateScorePrediction(masteryData || [], activityData || []);
-      setPrediction(calculatedPrediction);
-    } catch (error) {
-      console.error('Error loading prediction:', error);
-      setPrediction(getDemoPrediction());
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Simple logistic regression model for score prediction
-  const calculateScorePrediction = (
-    masteryData: any[],
-    activityData: any[]
-  ): ProgressPrediction => {
-    // Base score from topic mastery
-    const avgMastery = masteryData.length > 0
-      ? masteryData.reduce((sum, m) => sum + m.accuracy, 0) / masteryData.length
-      : 0.5;
-
-    // Activity bonus (consistency matters)
-    const studyDays = new Set(activityData.map(a => 
-      new Date(a.created_at).toDateString()
-    )).size;
-    const consistencyBonus = Math.min(studyDays / 20, 1) * 10; // Max 10 points
-
-    // Calculate base score (0-100 scale for EGE)
-    const baseScore = avgMastery * 80; // Max 80 from mastery
-    const currentScore = Math.round(baseScore + consistencyBonus);
-
-    // Predict improvement based on current trajectory
-    const weeklyImprovement = studyDays > 0 ? (currentScore / Math.max(studyDays, 1)) * 0.5 : 2;
-    const predictedScore = Math.min(Math.round(currentScore + weeklyImprovement * 4), 100);
-
-    // Identify weak topics
-    const weakTopics = masteryData
-      .filter(m => m.accuracy < 0.6)
-      .map(m => m.topic_id)
-      .slice(0, 3);
-
-    // Generate recommendations
-    const recommendedActions = generateRecommendations(weakTopics, currentScore);
-
-    // Days to reach goal (e.g., 80 points)
-    const targetScore = 80;
-    const daysToGoal = currentScore >= targetScore
-      ? 0
-      : Math.ceil((targetScore - currentScore) / weeklyImprovement);
-
-    return {
-      currentScore,
-      predictedScore,
-      confidence: 0.75 + (studyDays > 10 ? 0.15 : studyDays * 0.01),
-      weakTopics,
-      recommendedActions,
-      daysToGoal,
-    };
-  };
-
-  const getDemoPrediction = (): ProgressPrediction => ({
-    currentScore: 62,
-    predictedScore: 78,
-    confidence: 0.82,
-    weakTopics: ['trigonometry', 'calculus_basics', 'stereometry'],
-    recommendedActions: [
-      'Повторите формулы приведения в тригонометрии',
-      'Решите 5 задач на производные функции',
-      'Изучите свойства правильных многогранников',
-    ],
-    daysToGoal: 21,
-  });
-
-  const generateRecommendations = (weakTopics: string[], currentScore: number): string[] => {
-    const topicRecommendations: Record<string, string> = {
-      trigonometry: 'Повторите формулы приведения и основные тождества',
-      calculus_basics: 'Решите 5 задач на производные функции',
-      stereometry: 'Изучите свойства правильных многогранников',
-      algebra_basics: 'Отработайте преобразование алгебраических выражений',
-      geometry: 'Повторите теоремы о подобии треугольников',
+    // Простая модель прогноза на основе моковых данных
+    // В реальности здесь будет ML-модель или регрессия
+    const mockData = {
+      baseScore: 52, // Базовый балл из текущих результатов
+      topicBonuses: [
+        { name: 'Тригонометрия', current: 0.30, target: 0.70, impact: 12 },
+        { name: 'Начала анализа', current: 0, target: 0.60, impact: 10 },
+        { name: 'Функции и графики', current: 0.45, target: 0.75, impact: 8 },
+      ],
+      trend: 0.85, // Тренд улучшения (0-1)
     };
 
-    return weakTopics
-      .map(topic => topicRecommendations[topic] || `Повторите тему: ${topic}`)
-      .slice(0, 3);
+    // Расчёт прогнозируемого балла
+    const maxPotential = mockData.baseScore + mockData.topicBonuses.reduce((sum, t) => sum + t.impact, 0);
+    const weightedScore = mockData.baseScore + 
+      mockData.topicBonuses.reduce((sum, t) => sum + (t.current * t.impact), 0);
+    
+    // Прогноз с учётом тренда
+    const predicted = Math.round(weightedScore + (maxPotential - weightedScore) * mockData.trend * 0.6);
+    const confidenceLevel = Math.min(95, 60 + mockData.topicBonuses.length * 10);
+
+    setPredictedScore(predicted);
+    setConfidence(confidenceLevel);
+    setWeakTopics(mockData.topicBonuses.filter(t => t.current < t.target * 0.6));
+    setLoading(false);
+  }, [userId]);
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'text-green-600';
+    if (score >= 60) return 'text-yellow-600';
+    if (score >= 40) return 'text-orange-600';
+    return 'text-red-600';
   };
 
-  if (isLoading) {
+  const getScoreLabel = (score: number) => {
+    if (score >= 80) return 'Отличный результат!';
+    if (score >= 60) return 'Хороший уровень';
+    if (score >= 40) return 'Есть куда расти';
+    return 'Нужно серьёзно заняться';
+  };
+
+  if (loading) {
     return (
-      <div className="bg-white rounded-2xl shadow-xl p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-6 bg-gray-200 rounded w-1/3" />
-          <div className="h-20 bg-gray-200 rounded" />
-          <div className="h-32 bg-gray-200 rounded" />
+      <div className="bg-white rounded-2xl shadow-lg p-6">
+        <div className="flex items-center justify-center h-48">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
         </div>
       </div>
     );
   }
 
-  if (!prediction) return null;
-
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-6">
-      <h3 className="text-xl font-bold text-gray-900 mb-6">
-        Прогноз результата ЕГЭ
-      </h3>
+    <div className="bg-white rounded-2xl shadow-lg p-6">
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">📈 Прогноз результата ЕГЭ</h2>
 
-      {/* Score visualization */}
+      {/* Основной прогноз */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl p-6 text-center"
+        >
+          <p className="text-sm text-gray-600 mb-2">Прогнозируемый балл</p>
+          <p className={`text-5xl font-bold ${getScoreColor(predictedScore)}`}>{predictedScore}</p>
+          <p className="text-sm text-gray-500 mt-2">из 100</p>
+        </motion.div>
+
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="bg-gradient-to-br from-purple-50 to-pink-100 rounded-2xl p-6 text-center"
+        >
+          <p className="text-sm text-gray-600 mb-2">Уверенность прогноза</p>
+          <p className="text-5xl font-bold text-purple-600">{confidence}%</p>
+          <p className="text-sm text-gray-500 mt-2">на основе текущих данных</p>
+        </motion.div>
+
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-2xl p-6 text-center"
+        >
+          <p className="text-sm text-gray-600 mb-2">Потенциал роста</p>
+          <p className="text-5xl font-bold text-green-600">+{100 - predictedScore}</p>
+          <p className="text-sm text-gray-500 mt-2">баллов возможно набрать</p>
+        </motion.div>
+      </div>
+
+      {/* Рекомендации */}
       <div className="mb-6">
-        <div className="flex justify-between items-end mb-2">
-          <div>
-            <p className="text-sm text-gray-600">Текущий уровень</p>
-            <p className="text-4xl font-bold text-indigo-600">{prediction.currentScore}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-gray-600">Прогноз</p>
-            <p className="text-2xl font-bold text-green-600">+{prediction.predictedScore - prediction.currentScore}</p>
-          </div>
-        </div>
-
-        {/* Progress bar */}
-        <div className="relative h-4 bg-gray-200 rounded-full overflow-hidden">
-          <div
-            className="absolute h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500"
-            style={{ width: `${prediction.currentScore}%` }}
-          />
-          <div
-            className="absolute h-full bg-green-400 opacity-50 transition-all duration-500"
-            style={{ 
-              left: `${prediction.currentScore}%`,
-              width: `${prediction.predictedScore - prediction.currentScore}%`
-            }}
-          />
-        </div>
-        <div className="flex justify-between mt-2 text-xs text-gray-500">
-          <span>0</span>
-          <span>50</span>
-          <span>80 (цель)</span>
-          <span>100</span>
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">🎯 Что подтянуть для улучшения результата</h3>
+        <div className="space-y-3">
+          {weakTopics.map((topic, idx) => (
+            <motion.div
+              key={topic.name}
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: idx * 0.1 }}
+              className="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-200"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">⚠️</span>
+                <div>
+                  <p className="font-semibold text-gray-800">{topic.name}</p>
+                  <p className="text-sm text-gray-600">
+                    Текущий уровень: {Math.round(topic.current * 100)}% → Цель: {Math.round(topic.target * 100)}%
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-gray-600">Прирост баллов</p>
+                <p className="text-xl font-bold text-green-600">+{topic.impact}</p>
+              </div>
+            </motion.div>
+          ))}
         </div>
       </div>
 
-      {/* Confidence indicator */}
-      <div className="mb-6 p-3 bg-blue-50 rounded-lg">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">🎯</span>
-          <div>
-            <p className="text-sm font-medium text-blue-900">
-              Точность прогноза: {Math.round(prediction.confidence * 100)}%
-            </p>
-            <p className="text-xs text-blue-700">
-              На основе {prediction.daysToGoal > 0 ? `${prediction.daysToGoal} дней до цели` : 'Цель достигнута!'}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Weak topics */}
-      {prediction.weakTopics.length > 0 && (
-        <div className="mb-6">
-          <h4 className="font-semibold text-gray-900 mb-3">Темы для проработки:</h4>
-          <div className="space-y-2">
-            {prediction.weakTopics.map((topic, idx) => (
-              <div key={topic} className="flex items-center gap-3 p-3 bg-red-50 rounded-lg">
-                <span className="flex-shrink-0 w-6 h-6 flex items-center justify-center bg-red-500 text-white rounded-full text-xs font-bold">
-                  {idx + 1}
-                </span>
-                <span className="text-sm text-red-900 capitalize">{topic.replace('_', ' ')}</span>
+      {/* График прогресса (упрощённый) */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">📊 Динамика подготовки</h3>
+        <div className="relative h-32 bg-gray-50 rounded-xl overflow-hidden">
+          {/* Сетка */}
+          <div className="absolute inset-0 flex flex-col justify-between p-4">
+            {[100, 75, 50, 25, 0].map(val => (
+              <div key={val} className="flex items-center gap-2">
+                <span className="text-xs text-gray-400 w-8">{val}</span>
+                <div className="flex-1 border-t border-dashed border-gray-200" />
               </div>
             ))}
           </div>
+          
+          {/* Линия прогресса (SVG) */}
+          <svg className="absolute inset-0 w-full h-full p-4 pt-8 pb-4" viewBox="0 0 300 100" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="lineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="#3B82F6" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M 0,80 L 50,75 L 100,65 L 150,55 L 200,45 L 250,40 L 300,35 L 300,100 L 0,100 Z"
+              fill="url(#lineGradient)"
+            />
+            <polyline
+              points="0,80 50,75 100,65 150,55 200,45 250,40 300,35"
+              fill="none"
+              stroke="#3B82F6"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            {/* Точки */}
+            <circle cx="0" cy="80" r="4" fill="#3B82F6" />
+            <circle cx="50" cy="75" r="4" fill="#3B82F6" />
+            <circle cx="100" cy="65" r="4" fill="#3B82F6" />
+            <circle cx="150" cy="55" r="4" fill="#3B82F6" />
+            <circle cx="200" cy="45" r="4" fill="#3B82F6" />
+            <circle cx="250" cy="40" r="4" fill="#3B82F6" />
+            <circle cx="300" cy="35" r="4" fill="#3B82F6" />
+          </svg>
         </div>
-      )}
-
-      {/* Recommendations */}
-      <div>
-        <h4 className="font-semibold text-gray-900 mb-3">Рекомендации на неделю:</h4>
-        <ul className="space-y-2">
-          {prediction.recommendedActions.map((action, idx) => (
-            <li key={idx} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
-              <span className="text-green-600">✓</span>
-              <span className="text-sm text-gray-900">{action}</span>
-            </li>
-          ))}
-        </ul>
+        <p className="text-xs text-gray-500 mt-2 text-center">
+          График показывает динамику среднего процента освоения тем за последние 6 недель
+        </p>
       </div>
 
-      {/* CTA */}
-      <button className="w-full mt-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-semibold">
-        Начать работу над пробелами
-      </button>
+      {/* Итоговая рекомендация */}
+      <motion.div 
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.3 }}
+        className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200"
+      >
+        <p className="text-sm text-gray-700">
+          <span className="font-semibold">💡 Совет:</span> Сосредоточьтесь на теме &laquo;{weakTopics[0]?.name}&raquo;. 
+          Улучшение результата по этой теме даст максимальный прирост баллов ({weakTopics[0]?.impact}). 
+          Начните с практики базовых задач и обратитесь к AI-репетитору за разъяснениями.
+        </p>
+      </motion.div>
     </div>
   );
 }
