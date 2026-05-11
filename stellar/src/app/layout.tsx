@@ -1,0 +1,22 @@
+import type { Metadata } from 'next';
+import './globals.css';
+
+export const metadata: Metadata = {
+  title: 'Stellar — AI-ассистент для подготовки к ЕГЭ',
+  description: 'Персональный навигатор для подготовки к ОГЭ/ЕГЭ на базе адаптивного PWA и Large Language Models.',
+  manifest: '/manifest.json',
+  themeColor: '#0ea5e9',
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="ru">
+      <body className="antialiased">{children}</body>
+    </html>
+  );
+}
