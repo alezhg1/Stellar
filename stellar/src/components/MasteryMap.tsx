@@ -15,26 +15,26 @@ export default function MasteryMap() {
     return MASTERY_MAP_STRUCTURE.map((topic, index) => {
       const mastery = topicsMastery[topic.id] || 0;
       
-      let bgColor = 'bg-slate-100';
-      let borderColor = 'border-slate-300';
-      let textColor = 'text-slate-600';
+      let bgColor = 'glass-dark';
+      let borderColor = 'border-gray-400';
+      let textColor = 'text-gray-600';
+      let progressColor = 'bg-gray-500';
       
       if (mastery >= 0.8) {
-        bgColor = 'bg-green-100';
-        borderColor = 'border-green-400';
-        textColor = 'text-green-700';
+        bgColor = 'glass-card';
+        borderColor = 'border-gray-500';
+        textColor = 'text-gray-700';
+        progressColor = 'bg-gradient-to-r from-gray-400 to-gray-500';
       } else if (mastery >= 0.5) {
-        bgColor = 'bg-yellow-100';
-        borderColor = 'border-yellow-400';
-        textColor = 'text-yellow-700';
+        bgColor = 'glass-card';
+        borderColor = 'border-gray-400';
+        textColor = 'text-gray-700';
+        progressColor = 'bg-gradient-to-r from-gray-300 to-gray-400';
       } else if (mastery > 0) {
-        bgColor = 'bg-orange-100';
-        borderColor = 'border-orange-400';
-        textColor = 'text-orange-700';
-      } else {
-        bgColor = 'bg-slate-50';
-        borderColor = 'border-slate-200';
-        textColor = 'text-slate-400';
+        bgColor = 'glass-dark';
+        borderColor = 'border-gray-500';
+        textColor = 'text-gray-600';
+        progressColor = 'bg-gradient-to-r from-gray-400 to-gray-600';
       }
 
       return {
@@ -45,22 +45,19 @@ export default function MasteryMap() {
         },
         data: {
           label: (
-            <div className={cn('p-3 rounded-xl border-2', bgColor, borderColor)}>
+            <div className={cn('p-3 rounded-xl border-2 backdrop-blur-sm', bgColor, borderColor)}>
               <p className={cn('font-medium text-sm', textColor)}>
                 {topic.label}
               </p>
               {mastery > 0 && (
                 <div className="mt-2">
-                  <div className="h-1.5 bg-white/60 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-white/40 rounded-full overflow-hidden">
                     <div
-                      className={cn('h-full rounded-full transition-all', 
-                        mastery >= 0.8 ? 'bg-green-500' :
-                        mastery >= 0.5 ? 'bg-yellow-500' : 'bg-orange-500'
-                      )}
+                      className={cn('h-full rounded-full transition-all', progressColor)}
                       style={{ width: `${mastery * 100}%` }}
                     />
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-gray-500 mt-1">
                     {Math.round(mastery * 100)}%
                   </p>
                 </div>
@@ -82,7 +79,7 @@ export default function MasteryMap() {
         target: topic.id,
         type: 'smoothstep',
         animated: false,
-        style: { stroke: '#cbd5e1', strokeWidth: 2 },
+        style: { stroke: '#9ca3af', strokeWidth: 2, strokeDasharray: '5,5' },
       }));
   }, []);
 
@@ -90,11 +87,11 @@ export default function MasteryMap() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="h-[500px] w-full bg-white rounded-2xl shadow-lg border border-slate-100"
+      className="h-[500px] w-full glass-card rounded-2xl shadow-lg"
     >
-      <div className="p-4 border-b border-slate-100">
-        <h3 className="font-semibold text-slate-900">Карта знаний</h3>
-        <p className="text-xs text-slate-500">
+      <div className="p-4 border-b border-gray-300/50">
+        <h3 className="font-semibold text-gray-800">Карта знаний</h3>
+        <p className="text-xs text-gray-500">
           Визуализация твоих сильных сторон и зон роста
         </p>
       </div>
@@ -111,28 +108,28 @@ export default function MasteryMap() {
           zoomOnScroll={false}
           panOnDrag={true}
         >
-          <Background color="#e2e8f0" gap={20} />
-          <Controls showInteractive={false} />
+          <Background color="#d1d5db" gap={20} />
+          <Controls showInteractive={false} className="glass-card border-gray-300/50" />
         </ReactFlow>
       </div>
 
       {/* Legend */}
-      <div className="p-4 border-t border-slate-100 flex flex-wrap gap-4 justify-center">
+      <div className="p-4 border-t border-gray-300/50 flex flex-wrap gap-4 justify-center">
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-green-100 border border-green-400" />
-          <span className="text-xs text-slate-600">Усвоено (80%+)</span>
+          <div className="w-4 h-4 rounded glass-card border border-gray-500" />
+          <span className="text-xs text-gray-600">Усвоено (80%+)</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-yellow-100 border border-yellow-400" />
-          <span className="text-xs text-slate-600">В процессе (50-80%)</span>
+          <div className="w-4 h-4 rounded glass-card border border-gray-400" />
+          <span className="text-xs text-gray-600">В процессе (50-80%)</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-orange-100 border border-orange-400" />
-          <span className="text-xs text-slate-600">Требует внимания (&lt;50%)</span>
+          <div className="w-4 h-4 rounded glass-dark border border-gray-500" />
+          <span className="text-xs text-gray-600">Требует внимания (&lt;50%)</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-slate-50 border border-slate-200" />
-          <span className="text-xs text-slate-600">Не начато</span>
+          <div className="w-4 h-4 rounded glass-dark border border-gray-300" />
+          <span className="text-xs text-gray-600">Не начато</span>
         </div>
       </div>
     </motion.div>
