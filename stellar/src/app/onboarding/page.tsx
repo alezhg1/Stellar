@@ -4,8 +4,20 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/store/useAppStore';
-import { ONBOARDING_QUESTIONS } from '@/lib/constants';
-import { cn } from '@/lib/utils';
+
+// Встроенные вопросы для диагностики
+const ONBOARDING_QUESTIONS = [
+  { id: 1, text: "Найдите корень уравнения: 2x + 5 = 15", topic: "algebra_basics" },
+  { id: 2, text: "Вычислите: sin(30°) * cos(60°)", topic: "trigonometry" },
+  { id: 3, text: "Решите неравенство: x² - 4 > 0", topic: "inequalities" },
+  { id: 4, text: "Найдите производную функции: f(x) = x³ + 2x", topic: "derivatives" },
+  { id: 5, text: "Чему равен log₂(8)?", topic: "logarithms" },
+  { id: 6, text: "Найдите площадь круга радиусом 5", topic: "geometry_planar" },
+  { id: 7, text: "Решите уравнение: 2^x = 16", topic: "algebra_basics" },
+  { id: 8, text: "Найдите значение выражения: (a-b)(a+b) при a=5, b=3", topic: "algebra_basics" },
+  { id: 9, text: "Какова вероятность выпадения четного числа на кубике?", topic: "probability" },
+  { id: 10, text: "Найдите угол между касательной и радиусом в точке касания", topic: "geometry_planar" },
+];
 
 export default function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState(0);
