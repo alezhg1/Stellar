@@ -1,1 +1,46 @@
-(stellar/INSTALL.md and stellar/PRESENTATION.md are documentation/markdown files, and package.json is a source/config file - these are all source files that should not be ignored)
+```
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+.next/
+dist/
+build/
+out/
+
+# Environment variables
+.env
+.env.local
+.env.*
+!.env.example
+
+# Cache directories
+.cache/
+.node_cache/
+.npm/
+.yarn/
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE specific
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python specific (if applicable)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+.env
+```

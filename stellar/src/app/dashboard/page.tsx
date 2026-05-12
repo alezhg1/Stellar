@@ -9,7 +9,7 @@ import { Sparkles, TrendingUp, BookOpen } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { onboardingComplete, predictedScore, topicsMastery } = useAppStore();
+  const { onboardingComplete, predictedScore, topicsMastery, isAuthenticated } = useAppStore();
 
   useEffect(() => {
     if (!onboardingComplete) {
@@ -32,8 +32,8 @@ export default function DashboardPage() {
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-primary-600" />
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+              <Sparkles className="w-6 h-6 text-blue-600" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-slate-900">Stellar</h1>
@@ -42,9 +42,9 @@ export default function DashboardPage() {
           </div>
           
           <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-primary-50 rounded-lg">
-              <TrendingUp className="w-4 h-4 text-primary-600" />
-              <span className="text-sm font-medium text-primary-700">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg">
+              <TrendingUp className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-700">
                 Прогноз: {predictedScore} баллов
               </span>
             </div>
@@ -105,7 +105,7 @@ export default function DashboardPage() {
             <MasteryMap />
             
             {/* Quick Tips */}
-            <div className="mt-6 bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl p-6 text-white">
+            <div className="mt-6 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl p-6 text-white">
               <h3 className="font-semibold mb-2">💡 Совет дня</h3>
               <p className="text-sm opacity-90">
                 Начни с тем, которые отмечены оранжевым цветом. Они требуют внимания, 

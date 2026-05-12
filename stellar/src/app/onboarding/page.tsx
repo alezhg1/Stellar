@@ -12,6 +12,7 @@ export default function OnboardingPage() {
   const [answers, setAnswers] = useState<Record<number, boolean>>({});
   const router = useRouter();
   const completeOnboarding = useAppStore((state) => state.completeOnboarding);
+  const setUserId = useAppStore((state) => state.setUserId);
 
   const currentQuestion = ONBOARDING_QUESTIONS[currentStep];
   const progress = ((currentStep + 1) / ONBOARDING_QUESTIONS.length) * 100;
@@ -23,6 +24,10 @@ export default function OnboardingPage() {
     if (currentStep < ONBOARDING_QUESTIONS.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
+      // Generate a simple user ID for session
+      const userId = `user_${Date.now()}`;
+      setUserId(userId);
+      
       // Complete onboarding
       completeOnboarding(newAnswers);
       router.push('/dashboard');
@@ -54,7 +59,7 @@ export default function OnboardingPage() {
           </div>
           <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
             <motion.div
-              className="h-full bg-primary-500"
+              className="h-full bg-blue-500"
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.3 }}
@@ -73,7 +78,7 @@ export default function OnboardingPage() {
             className="bg-white rounded-2xl shadow-lg p-6 border border-slate-100"
           >
             <div className="mb-6">
-              <span className="inline-block px-3 py-1 bg-primary-100 text-primary-700 text-xs font-medium rounded-full mb-3">
+              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full mb-3">
                 Тема: {currentQuestion.topic.replace('_', ' ')}
               </span>
               <h2 className="text-xl font-semibold text-slate-900">
