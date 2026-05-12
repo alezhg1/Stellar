@@ -1,21 +1,19 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Send, Sparkles, AlertCircle } from 'lucide-react';
-import { useAppStore } from '@/store/useAppStore';
 import { Message } from '@/types';
-import { cn } from '@/lib/utils';
 
 interface SocraticChatProps {
   initialMessage?: string;
 }
 
 export default function SocraticChat({ initialMessage }: SocraticChatProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { messages, addMessage, isChatLoading, setChatLoading } = useAppStore();
-  
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -34,9 +32,9 @@ export default function SocraticChat({ initialMessage }: SocraticChatProps) {
       timestamp: new Date(),
     };
 
-    addMessage(userMessage);
+    setMessages(prev => [...prev, userMessage]);
     setInputValue('');
-    setChatLoading(true);
+    setIsLoading(true);
 
     try {
       const response = await fetch('/api/chat', {
@@ -44,26 +42,27 @@ export default function SocraticChat({ initialMessage }: SocraticChatProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: content.trim(),
-          history: messages.slice(-10), // Last 10 messages for context
+          history: messages.slice(-10),
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to get response');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Ошибка сервера: ${response.status}`);
+      }
 
-      // Handle streaming response
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let aiContent = '';
-      
+
       const aiMessageId = (Date.now() + 1).toString();
       
-      // Add placeholder AI message
-      addMessage({
+      setMessages(prev => [...prev, {
         id: aiMessageId,
         role: 'assistant',
         content: '',
         timestamp: new Date(),
-      });
+      }]);
 
       while (true) {
         const { done, value } = await reader!.read();
@@ -72,24 +71,24 @@ export default function SocraticChat({ initialMessage }: SocraticChatProps) {
         const chunk = decoder.decode(value, { stream: true });
         aiContent += chunk;
         
-        // Update the last AI message with new content
-        // In real app, you'd update specific message by ID
+        setMessages(prev => prev.map(msg => 
+          msg.id === aiMessageId 
+            ? { ...msg, content: aiContent }
+            : msg
+        ));
       }
 
-      // Final update (in real app, this would be done incrementally)
-      // For now, we'll just add a complete message after streaming
-      setChatLoading(false);
+      setIsLoading(false);
     } catch (error) {
       console.error('Error sending message:', error);
-      setChatLoading(false);
+      setIsLoading(false);
       
-      // Add error message
-      addMessage({
+      setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'assistant',
-        content: 'Извини, произошла ошибка. Попробуй еще раз.',
+        content: 'Извини, произошла ошибка. Проверь API ключ в .env.local и попробуй еще раз.',
         timestamp: new Date(),
-      });
+      }]);
     }
   };
 
@@ -105,9 +104,9 @@ export default function SocraticChat({ initialMessage }: SocraticChatProps) {
   };
 
   return (
-    <div className="flex flex-col h-full glass-card rounded-2xl shadow-lg">
+    <div className="flex flex-col h-[500px] glass-card rounded-2xl shadow-lg border border-white/10 overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-gray-300/50 bg-gradient-to-r from-gray-100/50 to-white/50 rounded-t-2xl backdrop-blur-sm">
+      <div className="p-4 border-b border-gray-300/50 bg-white/30 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full glass-dark flex items-center justify-center">
             <Sparkles className="w-5 h-5 text-gray-600" />
@@ -120,13 +119,9 @@ export default function SocraticChat({ initialMessage }: SocraticChatProps) {
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white/20">
         {messages.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="h-full flex items-center justify-center"
-          >
+          <div className="h-full flex items-center justify-center">
             <div className="text-center max-w-sm">
               <Sparkles className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h4 className="font-medium text-gray-700 mb-2">
@@ -144,26 +139,20 @@ export default function SocraticChat({ initialMessage }: SocraticChatProps) {
                 </button>
               )}
             </div>
-          </motion.div>
+          </div>
         ) : (
           <>
             {messages.map((message) => (
-              <motion.div
+              <div
                 key={message.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={cn(
-                  'flex',
-                  message.role === 'user' ? 'justify-end' : 'justify-start'
-                )}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={cn(
-                    'max-w-[80%] rounded-2xl px-4 py-3',
+                  className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                     message.role === 'user'
-                      ? 'glass-dark text-gray-800'
-                      : 'glass text-gray-800'
-                  )}
+                      ? 'bg-gray-800 text-white rounded-br-none'
+                      : 'bg-white/60 text-gray-800 border border-white/20 rounded-bl-none shadow-sm'
+                  }`}
                 >
                   {message.role === 'assistant' && (
                     <div className="flex items-center gap-2 mb-1">
@@ -175,23 +164,19 @@ export default function SocraticChat({ initialMessage }: SocraticChatProps) {
                   )}
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                 </div>
-              </motion.div>
+              </div>
             ))}
             
-            {isChatLoading && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex justify-start"
-              >
-                <div className="glass rounded-2xl px-4 py-3">
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-white/40 p-3 rounded-2xl rounded-bl-none border border-white/20">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.1s]" />
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]" />
                   </div>
                 </div>
-              </motion.div>
+              </div>
             )}
             <div ref={messagesEndRef} />
           </>
@@ -199,7 +184,7 @@ export default function SocraticChat({ initialMessage }: SocraticChatProps) {
       </div>
 
       {/* Input Area */}
-      <form onSubmit={handleSubmit} className="p-4 border-t border-gray-300/50">
+      <form onSubmit={handleSubmit} className="p-4 bg-white/30 backdrop-blur-md border-t border-gray-300/50">
         <div className="flex gap-2">
           <input
             type="text"
@@ -207,12 +192,12 @@ export default function SocraticChat({ initialMessage }: SocraticChatProps) {
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="Задай вопрос или опиши проблему..."
             className="flex-1 px-4 py-3 glass-input rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent text-sm text-gray-800 placeholder-gray-500"
-            disabled={isChatLoading}
+            disabled={isLoading}
           />
           <button
             type="submit"
-            disabled={!inputValue.trim() || isChatLoading}
-            className="px-4 py-3 glass-dark hover:bg-gray-400/60 disabled:bg-gray-200 disabled:cursor-not-allowed text-gray-700 rounded-xl transition-all"
+            disabled={!inputValue.trim() || isLoading}
+            className="px-4 py-3 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all"
           >
             <Send className="w-5 h-5" />
           </button>

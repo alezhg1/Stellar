@@ -1,14 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY,
-  defaultHeaders: {
-    'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-    'X-Title': 'Stellar AI Tutor',
-  },
-});
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 const SOCRATIC_SYSTEM_PROMPT = `Ты — Stellar, сократический тьютор по математике для подготовки к ОГЭ/ЕГЭ.
 Твоя цель — научить ученика решать задачи, а не дать готовый ответ.
@@ -22,14 +15,17 @@ const SOCRATIC_SYSTEM_PROMPT = `Ты — Stellar, сократический т�
 6. Тон: поддерживающий, как у старшего товарища. Избегай сухого академического языка.
 7. После каждого шага спрашивай: "Понятно ли это? Хочешь подсказку или попробуешь сам?"
 8. Пиши кратко и по делу, максимум 3-4 предложения за раз.
-
-История диалога:
-{history}
-
-Текущий запрос ученика: {message}`;
+9. Язык ответа: Русский.`;
 
 export async function POST(req: NextRequest) {
   try {
+    if (!OPENROUTER_API_KEY) {
+      return NextResponse.json(
+        { error: 'API ключ OpenRouter не настроен. Проверьте .env.local' },
+        { status: 500 }
+      );
+    }
+
     const { message, history } = await req.json();
 
     if (!message) {
@@ -39,38 +35,68 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Format history for context
     const formattedHistory = history
-      ? history
-          .map((msg: any) => `${msg.role}: ${msg.content}`)
-          .join('\n')
+      ? history.map((msg: any) => `${msg.role}: ${msg.content}`).join('\n')
       : '';
 
-    // Build the prompt
-    const systemPrompt = SOCRATIC_SYSTEM_PROMPT.replace('{history}', formattedHistory)
-      .replace('{message}', message);
+    const systemPrompt = SOCRATIC_SYSTEM_PROMPT + `\n\nИстория диалога:\n${formattedHistory}`;
 
-    // Create completion with streaming
-    const stream = await openai.chat.completions.create({
-      model: 'mistralai/mistral-7b-instruct:free', // Free model on OpenRouter
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: message },
-      ],
-      stream: true,
-      temperature: 0.7,
-      max_tokens: 300,
+    const stream = await fetch(OPENROUTER_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        'X-Title': 'Stellar AI Tutor',
+      },
+      body: JSON.stringify({
+        model: 'mistralai/mistral-7b-instruct:free',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: message },
+        ],
+        stream: true,
+        temperature: 0.7,
+        max_tokens: 300,
+      }),
     });
 
-    // Create a streaming response
-    const encoder = new TextEncoder();
+    if (!stream.ok) {
+      const errText = await stream.text();
+      console.error('OpenRouter Error:', errText);
+      throw new Error(`API Error: ${stream.status}`);
+    }
+
     const customStream = new ReadableStream({
       async start(controller) {
         try {
-          for await (const chunk of stream) {
-            const content = chunk.choices[0]?.delta?.content || '';
-            if (content) {
-              controller.enqueue(encoder.encode(content));
+          const reader = stream.body?.getReader();
+          const decoder = new TextDecoder();
+          
+          if (!reader) {
+            controller.close();
+            return;
+          }
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+              if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  const content = data.choices?.[0]?.delta?.content || '';
+                  if (content) {
+                    controller.enqueue(new TextEncoder().encode(content));
+                  }
+                } catch (e) {
+                  // Skip invalid JSON
+                }
+              }
             }
           }
           controller.close();
@@ -91,7 +117,7 @@ export async function POST(req: NextRequest) {
     console.error('Error in chat API:', error);
     
     return NextResponse.json(
-      { error: 'Failed to process request' },
+      { error: (error as Error).message || 'Failed to process request' },
       { status: 500 }
     );
   }
