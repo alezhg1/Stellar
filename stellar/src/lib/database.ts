@@ -1,124 +1,101 @@
-// Простая SQL-база данных на основе JSON-файла для MVP
-// В production замени на PostgreSQL/Supabase
-
-import { promises as fs } from 'fs';
+// src/lib/database.ts
+import fs from 'fs';
 import path from 'path';
 
-const DB_PATH = path.join(process.cwd(), 'data', 'stellar-db.json');
-
+// Интерфейсы данных
 export interface Topic {
   id: string;
   name: string;
-  parent_id: string | null;
-  weight: number;
-  fipi_code?: string;
+  category: string;
+  mastery: number; // 0-100
 }
 
 export interface DiagnosticResult {
-  id: string;
-  user_id: string;
-  topic_id: string;
-  is_correct: boolean;
-  created_at: string;
+  userId: string;
+  score: number;
+  weakTopics: string[];
+  strongTopics: string[];
+  timestamp: string;
 }
 
 export interface UserProgress {
-  user_id: string;
-  predicted_score: number;
-  topics_mastery: Record<string, number>;
-  last_updated: string;
+  userId: string;
+  predictedScore: number;
+  topics: Record<string, number>; // topicId -> mastery %
+  history: DiagnosticResult[];
 }
 
-export interface Database {
-  topics: Topic[];
-  diagnostics: DiagnosticResult[];
-  user_progress: UserProgress[];
-}
+// Путь к файлу БД (эмуляция SQL хранения в файле)
+const DB_PATH = path.join(process.cwd(), 'data', 'stellar-db.json');
 
-async function ensureDbExists(): Promise<void> {
+// Инициализация БД если нет
+function initDb() {
   const dir = path.dirname(DB_PATH);
-  await fs.mkdir(dir, { recursive: true });
-  
-  try {
-    await fs.access(DB_PATH);
-  } catch {
-    const initialDb: Database = {
-      topics: [
-        { id: '1', name: 'Алгебра', parent_id: null, weight: 10, fipi_code: 'ALG' },
-        { id: '2', name: 'Геометрия', parent_id: null, weight: 10, fipi_code: 'GEO' },
-        { id: '3', name: 'Тригонометрия', parent_id: '2', weight: 5, fipi_code: 'TRIG' },
-        { id: '4', name: 'Уравнения', parent_id: '1', weight: 8, fipi_code: 'EQ' },
-        { id: '5', name: 'Функции', parent_id: '1', weight: 7, fipi_code: 'FUNC' },
-      ],
-      diagnostics: [],
-      user_progress: [],
-    };
-    await fs.writeFile(DB_PATH, JSON.stringify(initialDb, null, 2));
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  if (!fs.existsSync(DB_PATH)) {
+    const initialData: Record<string, UserProgress> = {};
+    fs.writeFileSync(DB_PATH, JSON.stringify(initialData, null, 2));
   }
 }
 
-async function readDb(): Promise<Database> {
-  await ensureDbExists();
-  const data = await fs.readFile(DB_PATH, 'utf-8');
-  return JSON.parse(data) as Database;
+// Чтение БД
+function readDb(): Record<string, UserProgress> {
+  initDb();
+  const data = fs.readFileSync(DB_PATH, 'utf-8');
+  return JSON.parse(data);
 }
 
-async function writeDb(db: Database): Promise<void> {
-  await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2));
+// Запись БД
+function writeDb(data: Record<string, UserProgress>) {
+  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
 }
 
-export async function saveDiagnosticResult(
-  userId: string,
-  topicId: string,
-  isCorrect: boolean
-): Promise<void> {
-  const db = await readDb();
-  const newDiagnostic: DiagnosticResult = {
-    id: crypto.randomUUID(),
-    user_id: userId,
-    topic_id: topicId,
-    is_correct: isCorrect,
-    created_at: new Date().toISOString(),
-  };
-  db.diagnostics.push(newDiagnostic);
-  await writeDb(db);
+// --- Функции API ---
+
+export async function saveDiagnosticResult(result: DiagnosticResult): Promise<void> {
+  const db = readDb();
+  if (!db[result.userId]) {
+    db[result.userId] = {
+      userId: result.userId,
+      predictedScore: 50, // Стартовый прогноз
+      topics: {},
+      history: []
+    };
+  }
+  
+  // Обновляем историю
+  db[result.userId].history.push(result);
+  
+  // Простая логика обновления тем (в реальности тут будет сложная логика)
+  result.weakTopics.forEach(topic => {
+    db[result.userId].topics[topic] = Math.min(100, (db[result.userId].topics[topic] || 0) + 10);
+  });
+  
+  writeDb(db);
 }
 
 export async function getUserProgress(userId: string): Promise<UserProgress | null> {
-  const db = await readDb();
-  return db.user_progress.find(p => p.user_id === userId) || null;
+  const db = readDb();
+  return db[userId] || null;
 }
 
-export async function updatePredictedScore(
-  userId: string,
-  score: number,
-  topicsMastery: Record<string, number>
-): Promise<void> {
-  const db = await readDb();
-  const existingIndex = db.user_progress.findIndex(p => p.user_id === userId);
-  
-  const progress: UserProgress = {
-    user_id: userId,
-    predicted_score: score,
-    topics_mastery: topicsMastery,
-    last_updated: new Date().toISOString(),
-  };
-  
-  if (existingIndex >= 0) {
-    db.user_progress[existingIndex] = progress;
-  } else {
-    db.user_progress.push(progress);
+export async function updatePredictedScore(userId: string, score: number): Promise<void> {
+  const db = readDb();
+  if (db[userId]) {
+    db[userId].predictedScore = score;
+    writeDb(db);
   }
-  
-  await writeDb(db);
 }
 
 export async function getTopics(): Promise<Topic[]> {
-  const db = await readDb();
-  return db.topics;
-}
-
-export async function getUserDiagnostics(userId: string): Promise<DiagnosticResult[]> {
-  const db = await readDb();
-  return db.diagnostics.filter(d => d.user_id === userId);
+  // Статический список тем для MVP (можно вынести в отдельный JSON)
+  return [
+    { id: 'alg-1', name: 'Линейные уравнения', category: 'Алгебра', mastery: 0 },
+    { id: 'alg-2', name: 'Квадратные корни', category: 'Алгебра', mastery: 0 },
+    { id: 'geo-1', name: 'Треугольники', category: 'Геометрия', mastery: 0 },
+    { id: 'geo-2', name: 'Окружность', category: 'Геометрия', mastery: 0 },
+    { id: 'trig-1', name: 'Синус и Косинус', category: 'Тригонометрия', mastery: 0 },
+  ];
 }
