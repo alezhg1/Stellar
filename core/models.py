@@ -29,7 +29,7 @@ class Topic(models.Model):
 
 class UserProgress(models.Model):
     """User progress tracking per topic"""
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='progress')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='progress')
     topic = models.ForeignKey(Topic, on_delete=models.CASCADE, related_name='user_progress')
     score = models.IntegerField(default=0, help_text="Score 0-100")
     updated_at = models.DateTimeField(auto_now=True)
