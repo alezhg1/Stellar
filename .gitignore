@@ -1,36 +1,78 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# local env files
-.env*.local
+```
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.ENV
+.ENV.local
 .env
+.env.local
+.env.*
 
-# vercel
-.vercel
+# Django/Python web framework
+*.log
+*.pot
+*.po
+MANIFEST
+.coverage
+htmlcov/
+.coverage.*
+.python-version
+celerybeat-schedule
+celerybeat.pid
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# Static files and media (if not in version control)
+# stellar-backend/static/
+# stellar-backend/media/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build and distribution artifacts
+build/
+dist/
+*.egg
+*.egg-info/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Testing
+.coverage
+htmlcov/
+.nyc_output
+coverage/
+*.cover
+*.log
+
+# Local configuration
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Compressed archives
+*.zip
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.gz
+*.rar
+*.7z
+```

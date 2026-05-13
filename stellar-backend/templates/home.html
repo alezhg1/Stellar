@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Главная - Мои достижения{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/home.css' %}">
+{% endblock %}
+
+{% block body %}
+<div class="home-page">
+
+  <!-- Герой секция -->
+  <section class="hero-section">
+    <div class="hero-bg-shapes">
+      <div class="floating-shape shape-1"></div>
+      <div class="floating-shape shape-2"></div>
+    </div>
+
+    <div class="hero-container">
+      <!-- Текстовая часть -->
+      <div>
+        <h1 class="hero-title">
+          <span>Мои</span>
+          <span>достижения</span>
+        </h1>
+
+        <p id="typed-subtitle"></p>
+
+        <p class="hero-description">
+          Инновационная образовательная платформа для создания цифрового портфолио,
+          отслеживания успехов и вдохновения новыми достижениями
+        </p>
+
+        <div class="hero-actions">
+          {% if not user.is_authenticated %}
+          <a href="{% url 'dashboard' %}" class="hero-btn">
+            ✨ Начать бесплатно →
+          </a>
+          {% else %}
+          <a href="{% url 'dashboard' %}" class="hero-btn">
+              🚀 Перейти в кабинет →
+          </a>
+          <a href="#" class="hero-btn">
+            👤 Мой профиль
+          </a>
+          {% endif %}
+        </div>
+
+        <div class="hero-stats">
+          <div class="stat-item">
+            <div class="stat-number">43</div>
+            <div class="stat-label">активных пользователя</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">824</div>
+            <div class="stat-label">достижений добавлено</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">72</div>
+            <div class="stat-label">тестовых классов создано</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Визуальная часть - 6 плавающих картинок -->
+      <div class="hero-visual">
+        <img id="floating-image-1"
+             src="{% static 'images/home/hse.svg' %}"
+             alt="Высшая проба"
+             class="floating-img">
+
+        <img id="floating-image-2"
+             src="{% static 'images/home/vosh.png' %}"
+             alt="Всероссийская олимпиада"
+             class="floating-img">
+
+        <img id="floating-image-3"
+             src="{% static 'images/home/itmo.jpg' %}"
+             alt="Достижение 3"
+             class="floating-img">
+
+        <img id="floating-image-4"
+             src="{% static 'images/home/mipt_rus_inv.png' %}"
+             alt="Достижение 4"
+             class="floating-img">
+
+        <img id="floating-image-5"
+             src="{% static 'images/home/miphi.png' %}"
+             alt="Достижение 5"
+             class="floating-img">
+
+        <img id="floating-image-6"
+             src="{% static 'images/home/innopolis.png' %}"
+             alt="Достижение 6"
+             class="floating-img">
+      </div>
+    </div>
+  </section>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/home.js' %}"></script>
+{% endblock %}

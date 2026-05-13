@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Stellar{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% block body %}
+    <div class="app-container">
+        <aside class="sidebar glass-panel">
+            <div class="logo">
+                <h1>Stellar</h1>
+                <span>AI Mentor</span>
+            </div>
+            <nav>
+                <a href="{% url 'dashboard' %}" class="nav-btn {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">📚 Mastery Map</a>
+                <a href="{% url 'chat' %}" class="nav-btn {% if request.resolver_match.url_name == 'chat' %}active{% endif %}">💬 Chat Session</a>
+            </nav>
+            <div class="user-status">
+                <div class="avatar"></div>
+                {% if user.is_authenticated %}
+                <span>{{ user.username }}</span>
+                {% else %}
+                <span>Гость</span>
+                {% endif %}
+            </div>
+        </aside>
+
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    {% endblock %}
+
+    <script src="{% static 'js/app.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
