@@ -11,6 +11,7 @@ urlpatterns = [
     path('api/topics/', views.TopicListView.as_view(), name='api-topics'),
     path('api/chat/', views.ChatView.as_view(), name='api-chat'),
     path('api/chat/history/', views.ChatHistoryView.as_view(), name='api-chat-history'),
+    path('api/chat/clear/', views.ClearChatView.as_view(), name='api-chat-clear'),
     path('api/progress/', views.ProgressView.as_view(), name='api-progress'),
     path('api/progress/update/', views.UpdateProgressView.as_view(), name='api-progress-update'),
 ]

@@ -129,6 +129,15 @@ class ChatHistoryView(APIView):
         return Response(serializer.data)
 
 
+class ClearChatView(APIView):
+    """POST clear chat history"""
+    
+    def post(self, request):
+        user = get_or_create_demo_user(request)
+        ChatMessage.objects.filter(user=user).delete()
+        return Response({'success': True})
+
+
 class ProgressView(APIView):
     """GET progress summary and prediction"""
     
