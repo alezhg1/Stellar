@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Stellar</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <div class="container p-4">
+        <!-- Header -->
+        <header class="glass-panel mb-4" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem !important;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 2rem;">✨</span>
+                <div>
+                    <h1 style="font-size: 1.75rem; margin: 0;">Stellar</h1>
+                    <p class="text-muted" style="font-size: 0.875rem; margin: 0;">Твой AI-наставник</p>
+                </div>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <span id="subject-badge" class="btn btn-sm" style="background: rgba(255,255,255,0.08);">📐 Математика</span>
+                <a href="{% url 'landing' %}" class="text-muted" style="text-decoration: none; font-size: 0.875rem;">← Выйти</a>
+            </div>
+        </header>
+        
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="glass-panel stat-card">
+                <div class="stat-value" id="predicted-score">--</div>
+                <div class="stat-label">Прогноз балла</div>
+            </div>
+            <div class="glass-panel stat-card">
+                <div class="stat-value" id="total-topics">--</div>
+                <div class="stat-label">Всего тем</div>
+            </div>
+            <div class="glass-panel stat-card">
+                <div class="stat-value" id="mastered-topics">--</div>
+                <div class="stat-label">Изучено</div>
+            </div>
+            <div class="glass-panel stat-card">
+                <div class="stat-value" id="accuracy-rate">--%</div>
+                <div class="stat-label">Точность</div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="grid grid-2" style="grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <!-- Mastery Map -->
+            <div class="glass-panel">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                    <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                        <span>📊</span> Карта тем
+                    </h3>
+                    <button class="btn btn-sm" onclick="loadProgress()" style="padding: 6px 12px; font-size: 0.8125rem;">
+                        🔄 Обновить
+                    </button>
+                </div>
+                <div id="mastery-map" class="mt-4" style="max-height: 480px; overflow-y: auto; padding-right: 8px;">
+                    <div style="display: flex; justify-content: center; padding: 40px;">
+                        <div class="spinner"></div>
+                    </div>
+                    <p class="text-muted" style="text-align: center; margin-top: 16px;">Загрузка тем...</p>
+                </div>
+            </div>
+            
+            <!-- Chat -->
+            <div class="glass-panel">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                    <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                        <span>💬</span> Сократический чат
+                    </h3>
+                    <button class="btn btn-sm" onclick="clearChat()" style="padding: 6px 12px; font-size: 0.8125rem; opacity: 0.7;">
+                        🗑 Очистить
+                    </button>
+                </div>
+                <div class="chat-container">
+                    <div class="chat-messages" id="chat-messages">
+                        <div class="chat-message ai">
+                            👋 Привет! Я Stellar, твой AI-наставник. Я не даю готовые ответы, но помогу тебе разобраться в теме через наводящие вопросы. Что будем изучать?
+                        </div>
+                    </div>
+                    <div class="chat-input-container">
+                        <input type="text" class="chat-input" id="chat-input" placeholder="Задай вопрос по теме..." autocomplete="off" />
+                        <button class="btn btn-primary" id="send-btn" onclick="sendMessage()" style="padding: 14px 20px;">
+                            <span>→</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Tips -->
+        <div class="glass-panel mt-4" style="margin-top: 1.5rem !important;">
+            <h4 style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                <span>💡</span> Советы для эффективной подготовки
+            </h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                <div class="glass-card" style="padding: 16px;">
+                    <strong style="font-size: 0.9375rem;">🎯 Фокусируйся на понимании</strong>
+                    <p class="text-muted" style="font-size: 0.8125rem; margin-top: 6px;">Не запоминай решения, а понимай логику</p>
+                </div>
+                <div class="glass-card" style="padding: 16px;">
+                    <strong style="font-size: 0.9375rem;">⏱ Регулярность важнее</strong>
+                    <p class="text-muted" style="font-size: 0.8125rem; margin-top: 6px;">Лучше 30 минут каждый день, чем 5 часов раз в неделю</p>
+                </div>
+                <div class="glass-card" style="padding: 16px;">
+                    <strong style="font-size: 0.9375rem;">❓ Задавай вопросы</strong>
+                    <p class="text-muted" style="font-size: 0.8125rem; margin-top: 6px;">Чем больше вопросов — тем глубже понимание</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // API Base URL
+        const API_BASE = '/api';
+        
+        // Load progress on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProgress();
+            loadChatHistory();
+            
+            // Get subject from localStorage
+            const subject = localStorage.getItem('stellar_subject') || 'math';
+            updateSubjectBadge(subject);
+        });
+        
+        // Update subject badge
+        function updateSubjectBadge(subject) {
+            const subjects = {
+                'math': '📐 Математика',
+                'physics': '⚡ Физика',
+                'russian': '📚 Русский язык',
+                'informatics': '💻 Информатика'
+            };
+            const badge = document.getElementById('subject-badge');
+            if (badge && subjects[subject]) {
+                badge.textContent = subjects[subject];
+            }
+        }
+        
+        // Load progress data
+        async function loadProgress() {
+            const container = document.getElementById('mastery-map');
+            container.innerHTML = `
+                <div style="display: flex; justify-content: center; padding: 40px;">
+                    <div class="spinner"></div>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch(`${API_BASE}/progress/`);
+                const data = await response.json();
+                
+                document.getElementById('predicted-score').textContent = Math.round(data.predicted_score);
+                document.getElementById('total-topics').textContent = data.total_topics;
+                document.getElementById('mastered-topics').textContent = data.mastered_topics;
+                
+                // Calculate accuracy rate
+                const accuracy = data.total_topics > 0 
+                    ? Math.round((data.mastered_topics / data.total_topics) * 100) 
+                    : 0;
+                document.getElementById('accuracy-rate').textContent = accuracy + '%';
+                
+                renderMasteryMap(data.progress_by_topic);
+            } catch (error) {
+                console.error('Error loading progress:', error);
+                container.innerHTML = '<p class="text-muted" style="text-align: center; padding: 20px;">Ошибка загрузки данных</p>';
+            }
+        }
+        
+        // Render mastery map
+        function renderMasteryMap(topics) {
+            const container = document.getElementById('mastery-map');
+            
+            if (!topics || topics.length === 0) {
+                container.innerHTML = '<p class="text-muted" style="text-align: center; padding: 20px;">Темы еще не добавлены. Пройди онбординг!</p>';
+                return;
+            }
+            
+            let html = '';
+            topics.forEach(topic => {
+                let statusClass = 'learning';
+                let statusText = 'В процессе';
+                let progressClass = '';
+                
+                if (topic.score >= 70) {
+                    statusClass = 'mastered';
+                    statusText = 'Изучено';
+                } else if (topic.score >= 40) {
+                    statusClass = 'in-progress';
+                    statusText = 'Изучается';
+                    progressClass = 'medium';
+                }
+                
+                if (topic.score < 40) {
+                    progressClass = 'low';
+                }
+                
+                html += `
+                    <div class="topic-item">
+                        <div class="topic-info">
+                            <div class="topic-status ${statusClass}" title="${statusText}"></div>
+                            <span class="topic-name">${escapeHtml(topic.topic_name)}</span>
+                        </div>
+                        <span class="topic-score">${topic.score}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill ${progressClass}" style="width: ${topic.score}%"></div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // Load chat history
+        async function loadChatHistory() {
+            try {
+                const response = await fetch(`${API_BASE}/chat/history/`);
+                const messages = await response.json();
+                
+                if (messages && messages.length > 0) {
+                    const container = document.getElementById('chat-messages');
+                    container.innerHTML = messages.map(msg => `
+                        <div class="chat-message ${msg.role}">
+                            ${formatMessage(msg.content)}
+                        </div>
+                    `).join('');
+                    scrollToBottom();
+                }
+            } catch (error) {
+                console.error('Error loading chat history:', error);
+            }
+        }
+        
+        // Format message (convert line breaks to <br>)
+        function formatMessage(text) {
+            return escapeHtml(text).replace(/\n/g, '<br>');
+        }
+        
+        // Send message
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Get subject for AI context
+            const subject = localStorage.getItem('stellar_subject') || 'mathematics';
+            
+            const sendBtn = document.getElementById('send-btn');
+            const inputField = document.getElementById('chat-input');
+            
+            // Disable input while sending
+            sendBtn.disabled = true;
+            inputField.disabled = true;
+            sendBtn.innerHTML = '<div class="spinner" style="width: 18px; height: 18px; border-width: 2px;"></div>';
+            
+            // Add user message to UI
+            const container = document.getElementById('chat-messages');
+            container.innerHTML += `<div class="chat-message user">${formatMessage(message)}</div>`;
+            scrollToBottom();
+            
+            input.value = '';
+            
+            try {
+                const response = await fetch(`${API_BASE}/chat/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ 
+                        message: message,
+                        subject: subject 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.ai_message) {
+                    // Show typing indicator
+                    container.innerHTML += `<div class="chat-message ai typing" id="typing-indicator">
+                        <span></span><span></span><span></span>
+                    </div>`;
+                    scrollToBottom();
+                    
+                    // Remove typing indicator and show actual message after short delay
+                    setTimeout(() => {
+                        const typingIndicator = document.getElementById('typing-indicator');
+                        if (typingIndicator) {
+                            typingIndicator.remove();
+                        }
+                        container.innerHTML += `<div class="chat-message ai">${formatMessage(data.ai_message.content)}</div>`;
+                        scrollToBottom();
+                    }, 600);
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                container.innerHTML += `<div class="chat-message ai">⚠️ Произошла ошибка. Попробуйте еще раз.</div>`;
+            } finally {
+                sendBtn.disabled = false;
+                inputField.disabled = false;
+                sendBtn.innerHTML = '<span>→</span>';
+                inputField.focus();
+            }
+        }
+        
+        // Clear chat
+        async function clearChat() {
+            if (!confirm('Очистить историю чата?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/chat/clear/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+                
+                if (response.ok) {
+                    const container = document.getElementById('chat-messages');
+                    container.innerHTML = `
+                        <div class="chat-message ai">
+                            👋 Привет! Я Stellar, твой AI-наставник. Я не даю готовые ответы, но помогу тебе разобраться в теме через наводящие вопросы. Что будем изучать?
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error clearing chat:', error);
+                // Fallback: just clear UI
+                const container = document.getElementById('chat-messages');
+                container.innerHTML = `
+                    <div class="chat-message ai">
+                        👋 Чат очищен! Что будем изучать?
+                    </div>
+                `;
+            }
+        }
+        
+        // Handle Enter key
+        document.getElementById('chat-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // Scroll to bottom of chat
+        function scrollToBottom() {
+            const container = document.getElementById('chat-messages');
+            setTimeout(() => {
+                container.scrollTop = container.scrollHeight;
+            }, 50);
+        }
+        
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Get CSRF cookie
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+</html>

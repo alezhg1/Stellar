@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Выбор предмета - Stellar</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <div class="hero">
+        <div class="hero-content">
+            <div style="margin-bottom: 1rem;">
+                <span style="font-size: 3.5rem; display: inline-block;">🎓</span>
+            </div>
+            <h1 class="mb-4">Выбери предмет</h1>
+            <p class="text-muted mt-4 mb-4" style="font-size: 1.125rem;">С чего начнем подготовку?</p>
+            
+            <form method="post" action="{% url 'onboarding' %}">
+                {% csrf_token %}
+                <div class="subject-grid">
+                    <label class="glass-card subject-card">
+                        <input type="radio" name="subject" value="math" style="display: none;" checked>
+                        <div class="subject-icon">📐</div>
+                        <h3>Математика</h3>
+                        <p class="text-muted mt-4" style="font-size: 0.875rem; line-height: 1.6;">Алгебра, геометрия, тригонометрия<br>28 тем для подготовки</p>
+                    </label>
+                    
+                    <label class="glass-card subject-card">
+                        <input type="radio" name="subject" value="physics" style="display: none;">
+                        <div class="subject-icon">⚡</div>
+                        <h3>Физика</h3>
+                        <p class="text-muted mt-4" style="font-size: 0.875rem; line-height: 1.6;">Механика, электричество, оптика<br>28 тем для подготовки</p>
+                    </label>
+                    
+                    <label class="glass-card subject-card">
+                        <input type="radio" name="subject" value="russian" style="display: none;">
+                        <div class="subject-icon">📚</div>
+                        <h3>Русский язык</h3>
+                        <p class="text-muted mt-4" style="font-size: 0.875rem; line-height: 1.6;">Грамматика, сочинение, тесты<br>28 тем для подготовки</p>
+                    </label>
+                    
+                    <label class="glass-card subject-card">
+                        <input type="radio" name="subject" value="informatics" style="display: none;">
+                        <div class="subject-icon">💻</div>
+                        <h3>Информатика</h3>
+                        <p class="text-muted mt-4" style="font-size: 0.875rem; line-height: 1.6;">Программирование, алгоритмы<br>28 тем для подготовки</p>
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn btn-primary mt-8" style="display: block; width: 100%; font-size: 1.125rem; padding: 16px 32px;">
+                    Продолжить →
+                </button>
+            </form>
+            
+            <a href="{% url 'landing' %}" class="text-muted mt-4" style="display: block; text-align: center; text-decoration: none; font-size: 0.9375rem;">
+                ← На главную
+            </a>
+        </div>
+    </div>
+    
+    <script>
+        // Save selected subject to localStorage
+        document.querySelectorAll('input[name="subject"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                localStorage.setItem('stellar_subject', this.value);
+            });
+        });
+        
+        // Add hover effect with JavaScript for better control
+        document.querySelectorAll('.subject-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-8px) scale(1.03)';
+            });
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+    </script>
+</body>
+</html>
