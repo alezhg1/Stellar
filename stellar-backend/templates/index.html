@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stellar | AI Tutor</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar glass-panel">
+            <div class="logo">
+                <h1>Stellar</h1>
+                <span>AI Mentor</span>
+            </div>
+            <nav>
+                <button class="nav-btn active" onclick="showSection('dashboard')">📚 Mastery Map</button>
+                <button class="nav-btn" onclick="showSection('chat')">💬 Chat Session</button>
+            </nav>
+            <div class="user-status">
+                <div class="avatar"></div>
+                <span>Guest Student</span>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <section id="dashboard" class="section active">
+                <header>
+                    <h2>Your Progress</h2>
+                    <button id="init-db-btn" style="display:none;" onclick="initDB()">⚡ Initialize DB</button>
+                </header>
+                
+                <div id="topics-grid" class="glass-panel grid-container">
+                    <div class="loader">Loading knowledge graph...</div>
+                </div>
+            </section>
+
+            <section id="chat" class="section hidden">
+                <header>
+                    <h2>Socratic Dialogue</h2>
+                    <span class="status-indicator">Online</span>
+                </header>
+                
+                <div class="chat-interface glass-panel">
+                    <div id="messages-list" class="messages-area">
+                        <div class="message ai">
+                            <div class="bubble">Привет! Я Stellar. Какую тему будем разбирать сегодня?</div>
+                        </div>
+                    </div>
+                    
+                    <div class="input-area">
+                        <input type="text" id="user-input" placeholder="Ask a question..." autocomplete="off">
+                        <button id="send-btn">➤</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
