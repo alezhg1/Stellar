@@ -1,45 +1,78 @@
-```gitignore
+```
 # Python
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
+*.pyc
+*.pyo
+*.pyd
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Virtual Environment
-venv/
-ENV/
 env/
+venv/
 .venv/
-env.bak/
-venv.bak/
+.ENV
+.ENV.local
+.env
+.env.local
+.env.*
 
-# Django
+# Django/Python web framework
 *.log
+*.pot
+*.po
+MANIFEST
+.coverage
+htmlcov/
+.coverage.*
+.python-version
+celerybeat-schedule
+celerybeat.pid
+
+# Static files and media (if not in version control)
+# stellar-backend/static/
+# stellar-backend/media/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build and distribution artifacts
+build/
+dist/
+*.egg
+*.egg-info/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Testing
+.coverage
+htmlcov/
+.nyc_output
+coverage/
+*.cover
+*.log
+
+# Local configuration
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
-# IDE
-.vscode/
-.idea/
-
-# OS
-.DS_Store
-Thumbs.db
+# Compressed archives
+*.zip
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.gz
+*.rar
+*.7z
 ```
