@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Stellar</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <div class="container p-4">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-4">
+            <h1>Stellar</h1>
+            <a href="{% url 'landing' %}" class="text-muted" style="text-decoration: none;">Выйти</a>
+        </header>
+        
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="glass-panel stat-card">
+                <div class="stat-value" id="predicted-score">--</div>
+                <div class="stat-label">Прогноз балла</div>
+            </div>
+            <div class="glass-panel stat-card">
+                <div class="stat-value" id="total-topics">--</div>
+                <div class="stat-label">Всего тем</div>
+            </div>
+            <div class="glass-panel stat-card">
+                <div class="stat-value" id="mastered-topics">--</div>
+                <div class="stat-label">Изучено</div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="grid grid-2">
+            <!-- Mastery Map -->
+            <div class="glass-panel">
+                <h3 class="mb-4">📊 Карта тем</h3>
+                <div id="mastery-map" class="mt-4">
+                    <div class="spinner"></div>
+                    <p class="text-muted mt-4">Загрузка тем...</p>
+                </div>
+            </div>
+            
+            <!-- Chat -->
+            <div class="glass-panel">
+                <h3 class="mb-4">💬 Сократический чат</h3>
+                <div class="chat-container">
+                    <div class="chat-messages" id="chat-messages">
+                        <div class="chat-message ai">
+                            Привет! Я Stellar, твой AI-наставник. Я не даю готовые ответы, но помогу тебе разобраться в теме через наводящие вопросы. Что будем изучать?
+                        </div>
+                    </div>
+                    <div class="chat-input-container">
+                        <input type="text" class="chat-input" id="chat-input" placeholder="Задай вопрос по теме..." />
+                        <button class="btn btn-primary" id="send-btn" onclick="sendMessage()">→</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // API Base URL
+        const API_BASE = '/api';
+        
+        // Load progress on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProgress();
+            loadChatHistory();
+        });
+        
+        // Load progress data
+        async function loadProgress() {
+            try {
+                const response = await fetch(`${API_BASE}/progress/`);
+                const data = await response.json();
+                
+                document.getElementById('predicted-score').textContent = Math.round(data.predicted_score);
+                document.getElementById('total-topics').textContent = data.total_topics;
+                document.getElementById('mastered-topics').textContent = data.mastered_topics;
+                
+                renderMasteryMap(data.progress_by_topic);
+            } catch (error) {
+                console.error('Error loading progress:', error);
+                document.getElementById('mastery-map').innerHTML = '<p class="text-muted">Ошибка загрузки данных</p>';
+            }
+        }
+        
+        // Render mastery map
+        function renderMasteryMap(topics) {
+            const container = document.getElementById('mastery-map');
+            
+            if (!topics || topics.length === 0) {
+                container.innerHTML = '<p class="text-muted">Темы еще не добавлены</p>';
+                return;
+            }
+            
+            let html = '';
+            topics.forEach(topic => {
+                const statusClass = topic.is_mastered ? 'mastered' : 'learning';
+                const statusText = topic.is_mastered ? 'Изучено' : 'В процессе';
+                
+                html += `
+                    <div class="topic-item">
+                        <div class="flex items-center">
+                            <div class="topic-status ${statusClass}"></div>
+                            <span>${topic.topic_name}</span>
+                        </div>
+                        <span class="text-muted">${topic.score}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${topic.score}%"></div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // Load chat history
+        async function loadChatHistory() {
+            try {
+                const response = await fetch(`${API_BASE}/chat/history/`);
+                const messages = await response.json();
+                
+                if (messages && messages.length > 0) {
+                    const container = document.getElementById('chat-messages');
+                    container.innerHTML = messages.map(msg => `
+                        <div class="chat-message ${msg.role}">
+                            ${escapeHtml(msg.content)}
+                        </div>
+                    `).join('');
+                    scrollToBottom();
+                }
+            } catch (error) {
+                console.error('Error loading chat history:', error);
+            }
+        }
+        
+        // Send message
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            const sendBtn = document.getElementById('send-btn');
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<div class="spinner" style="width: 20px; height: 20px;"></div>';
+            
+            // Add user message to UI
+            const container = document.getElementById('chat-messages');
+            container.innerHTML += `<div class="chat-message user">${escapeHtml(message)}</div>`;
+            scrollToBottom();
+            
+            input.value = '';
+            
+            try {
+                const response = await fetch(`${API_BASE}/chat/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+                
+                const data = await response.json();
+                
+                if (data.ai_message) {
+                    container.innerHTML += `<div class="chat-message ai">${escapeHtml(data.ai_message.content)}</div>`;
+                    scrollToBottom();
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                container.innerHTML += `<div class="chat-message ai">Произошла ошибка. Попробуйте еще раз.</div>`;
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '→';
+            }
+        }
+        
+        // Handle Enter key
+        document.getElementById('chat-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // Scroll to bottom of chat
+        function scrollToBottom() {
+            const container = document.getElementById('chat-messages');
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Get CSRF cookie
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+</html>

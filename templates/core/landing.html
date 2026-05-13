@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stellar - AI-ассистент для ЕГЭ/ОГЭ</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <div class="hero">
+        <div class="hero-content">
+            <h1 class="mb-4">Stellar</h1>
+            <p class="text-muted mt-4 mb-4" style="font-size: 1.25rem;">
+                Твой персональный AI-наставник для подготовки к экзаменам.
+                <br>Не дает ответы — учит понимать.
+            </p>
+            
+            <div class="glass-panel mt-8">
+                <h3 class="mb-4">Как это работает?</h3>
+                <div class="grid gap-4" style="text-align: left;">
+                    <div class="glass-card">
+                        <strong>🎯 Сократический метод</strong>
+                        <p class="text-muted mt-4">AI задает наводящие вопросы, помогая тебе самому найти решение</p>
+                    </div>
+                    <div class="glass-card">
+                        <strong>📊 Карта прогресса</strong>
+                        <p class="text-muted mt-4">Отслеживай mastery по каждой теме с цветовыми индикаторами</p>
+                    </div>
+                    <div class="glass-card">
+                        <strong>🔮 Прогноз балла</strong>
+                        <p class="text-muted mt-4">Получай предсказание итогового результата на основе прогресса</p>
+                    </div>
+                </div>
+                
+                <a href="{% url 'onboarding' %}" class="btn btn-primary mt-8" style="display: inline-block;">
+                    Начать подготовку →
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

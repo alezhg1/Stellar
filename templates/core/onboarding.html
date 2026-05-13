@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Выбор предмета - Stellar</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <div class="hero">
+        <div class="hero-content">
+            <h1 class="mb-4">Выбери предмет</h1>
+            <p class="text-muted mt-4 mb-4">С чего начнем подготовку?</p>
+            
+            <form method="post" action="{% url 'onboarding' %}">
+                {% csrf_token %}
+                <div class="subject-grid">
+                    <label class="glass-card subject-card">
+                        <input type="radio" name="subject" value="math" style="display: none;" checked>
+                        <div class="subject-icon">📐</div>
+                        <h3>Математика</h3>
+                        <p class="text-muted mt-4">Алгебра, геометрия, тригонометрия</p>
+                    </label>
+                    
+                    <label class="glass-card subject-card">
+                        <input type="radio" name="subject" value="physics" style="display: none;">
+                        <div class="subject-icon">⚡</div>
+                        <h3>Физика</h3>
+                        <p class="text-muted mt-4">Механика, электричество, оптика</p>
+                    </label>
+                    
+                    <label class="glass-card subject-card">
+                        <input type="radio" name="subject" value="russian" style="display: none;">
+                        <div class="subject-icon">📚</div>
+                        <h3>Русский язык</h3>
+                        <p class="text-muted mt-4">Грамматика, сочинение, тесты</p>
+                    </label>
+                    
+                    <label class="glass-card subject-card">
+                        <input type="radio" name="subject" value="informatics" style="display: none;">
+                        <div class="subject-icon">💻</div>
+                        <h3>Информатика</h3>
+                        <p class="text-muted mt-4">Программирование, алгоритмы</p>
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn btn-primary mt-8" style="display: block; width: 100%;">
+                    Продолжить →
+                </button>
+            </form>
+            
+            <a href="{% url 'landing' %}" class="text-muted mt-4" style="display: block; text-align: center; text-decoration: none;">
+                ← На главную
+            </a>
+        </div>
+    </div>
+</body>
+</html>

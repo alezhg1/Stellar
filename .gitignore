@@ -1,78 +1,53 @@
 ```
 # Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
 .Python
-env/
 venv/
+env/
+ENV/
 .venv/
-.ENV
-.ENV.local
-.env
-.env.local
-.env.*
+.python-version
+.pytest_cache/
+.mypy_cache/
 
-# Django/Python web framework
+# Django
 *.log
-*.pot
-*.po
-MANIFEST
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+.env
+
+# Build and distribution
+build/
+dist/
+*.egg-info/
 .coverage
 htmlcov/
-.coverage.*
-.python-version
-celerybeat-schedule
-celerybeat.pid
 
-# Static files and media (if not in version control)
-# stellar-backend/static/
-# stellar-backend/media/
-
-# IDE and editor files
+# IDE and editor
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
+*.tmp
 
-# OS generated files
+# OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 
-# Build and distribution artifacts
-build/
-dist/
-*.egg
-*.egg-info/
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Testing
-.coverage
-htmlcov/
-.nyc_output
-coverage/
-*.cover
-*.log
-
-# Local configuration
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Compressed archives
+# Compression
 *.zip
 *.tar.gz
 *.tar.bz2
 *.tar.xz
 *.gz
-*.rar
+*.bz2
+*.xz
 *.7z
+*.rar
 ```
