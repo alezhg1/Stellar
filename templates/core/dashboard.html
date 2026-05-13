@@ -247,6 +247,9 @@
             
             if (!message) return;
             
+            // Get subject for AI context
+            const subject = localStorage.getItem('stellar_subject') || 'mathematics';
+            
             const sendBtn = document.getElementById('send-btn');
             const inputField = document.getElementById('chat-input');
             
@@ -269,7 +272,10 @@
                         'Content-Type': 'application/json',
                         'X-CSRFToken': getCookie('csrftoken')
                     },
-                    body: JSON.stringify({ message: message })
+                    body: JSON.stringify({ 
+                        message: message,
+                        subject: subject 
+                    })
                 });
                 
                 const data = await response.json();

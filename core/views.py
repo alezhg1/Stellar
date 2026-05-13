@@ -80,6 +80,7 @@ class ChatView(APIView):
     
     def post(self, request):
         content = request.data.get('message', '')
+        subject = request.data.get('subject', 'mathematics')  # Get subject from request
         
         if not content:
             return Response(
@@ -103,8 +104,8 @@ class ChatView(APIView):
             .values('role', 'content')
         )
         
-        # Get AI response
-        ai_response_text = get_socratic_response(history, content)
+        # Get AI response with subject context
+        ai_response_text = get_socratic_response(history, content, subject)
         
         # Save AI response
         ai_message = ChatMessage.objects.create(
